@@ -19,4 +19,4 @@ The number of added media and the resulting number of media lines in the offer a
 Rollbacks are quick and therefore no problem.
 Signalling tends to be a longer process than common webrtc operations (which take often 1 to 6ms), therefore, if having to choose between more signalling messages or more webrtc operations due to rollback, rollback is advantageous.
 An overview can be seen at the github hosted pages
-[https://nasskaltejuni.github.io/webrtc_benchmarks/](https://nasskaltejuni.github.io/webrtc_benchmarks/)
+https://nasskaltejuni.github.io/webrtc_benchmarks/
