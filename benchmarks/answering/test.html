@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>answering tests</title>
+    <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+    <script src="../utils.js"></script>
+    <script>
+        (async () => {
+            (await benchmark({
+                name: 'setRemoteDescription',
+                fn: async function(){
+                    await this.pc.setRemoteDescription(this.offer);
+                },
+                beforeEach: async function(){
+                    this.offerer = new RTCPeerConnection({ iceServers: [] });
+                    this.pc = new RTCPeerConnection({ iceServers: []});
+                    this.offerer.addTransceiver("audio");
+                    this.offerer.addTransceiver("video");
+                    this.offer = await this.pc.createOffer();
+                    await this.offerer.setLocalDescription(this.offer);
+                },
+                afterEach: function(){
+                    this.offerer.close();
+                    this.pc.close();
+                    this.offer = null;
+                    this.offerer = null;
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createAnswer',
+                fn: async function(){
+                    await this.pc.createAnswer();
+                },
+                beforeEach: async function(){
+                    this.offerer = new RTCPeerConnection({ iceServers: [] });
+                    this.pc = new RTCPeerConnection({ iceServers: []});
+                    this.offerer.addTransceiver("audio");
+                    this.offerer.addTransceiver("video");
+                    this.offer = await this.pc.createOffer();
+                    await this.offerer.setLocalDescription(this.offer);
+                    await this.pc.setRemoteDescription(this.offer);
+                },
+                afterEach: function(){
+                    this.offerer.close();
+                    this.pc.close();
+                    this.offer = null;
+                    this.offerer = null;
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'using addTrack',
+                fn: async function(){
+                    this.stream.getTracks().forEach(track => this.pc.addTrack(track));
+                },
+                beforeAll: async function(){
+                    this.stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                },
+                beforeEach: async function(){
+                    this.offerer = new RTCPeerConnection({ iceServers: [] });
+                    this.pc = new RTCPeerConnection({ iceServers: []});
+                    this.offerer.addTransceiver("audio");
+                    this.offerer.addTransceiver("video");
+                    const offer = await this.offerer.createOffer();
+                    await this.offerer.setLocalDescription(offer);
+                    await this.pc.setRemoteDescription(offer);
+                    const answer = await this.pc.createAnswer();
+                    await this.pc.setLocalDescription(answer);
+                    await this.offerer.setRemoteDescription(answer);
+                },
+                afterEach: function(){
+                    this.offerer.close();
+                    this.pc.close();
+                    this.offer = null;
+                    this.offerer = null;
+                    this.pc = null;
+                },
+                afterAll: function(){
+                    this.stream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    })
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'implicit roleback on setRemoteDescription (new syntax)',
+                fn: async function(){
+                    await this.pc.setRemoteDescription(this.offerer.localDescription);
+                },
+                beforeEach: async function(){
+                    this.offerer = new RTCPeerConnection({ iceServers: [] });
+                    this.pc = new RTCPeerConnection({ iceServers: []});
+                    this.pc.addTransceiver("audio");
+                    this.pc.addTransceiver("video");
+                    this.offerer.addTransceiver("audio");
+                    this.offerer.addTransceiver("video");
+                    await this.offerer.setLocalDescription(await this.offerer.createOffer());
+                    await this.pc.setLocalDescription(await this.pc.createOffer());
+                },
+                afterEach: function(){
+                    this.offerer.close();
+                    this.pc.close();
+                    this.offerer = null;
+                    this.pc = null;
+                },
+                onError: function(err){
+                    if(err.message && err.message.indexOf("argument") >= 0) console.warn("browser probably does not support this");
+                    else console.error(err);
+                }
+            })).output("html");
+        })()
+    </script>
+</head>
+<body>
+<h1>answer related benchmark suite</h1>
+</body>
+</html>

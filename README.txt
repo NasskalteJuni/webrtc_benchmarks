@@ -3,7 +3,7 @@ README:
 Purpose:
 This is a benchmark project to check how fast common webrtc functions are run.
 Its main purpose is to give an overview, indicating which webrtc api functions need more time under which circumstances.
-This may indicate, how much time is lost due to glare and roleback as well which glare handling and avoidance method is preferable for a quick connection setup
+This may indicate how much time is lost due to glare and rollback as well which glare handling and avoidance method is preferable for a quick connection setup
 
 Setup:
 The defined suites were run on different platforms but mainly on the same browser (Chrome Canary, due to the state of implementation of the webrtc standard at the time).
