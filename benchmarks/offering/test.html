@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>offering tests</title>
+    <script src="../utils.js"></script>
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+            font-family: "Helvetica", "Arial", sans-serif;
+        }
+
+        html, body{
+            width: 100%;
+            min-width: 100vw;
+            height: 100%;
+            min-height: 100vh;
+        }
+
+        body{
+            background-color: rgb(250, 250, 250);
+            color: rgb(50,50,50);
+        }
+
+        body>*{
+            margin: 0.1em 2em;
+            display: inline-block;
+            width: calc(100vw - 5em);
+        }
+    </style>
+    <script>
+        (async () => {
+            (await benchmark({
+                name: 'complete offer answer exchange with muted video and audio but without active media or glare',
+                numberOfRuns: 5,
+                fn: async function(){
+                    this.a.addTransceiver("audio");
+                    this.a.addTransceiver("video");
+                    const offer = await this.a.createOffer();
+                    await this.a.setLocalDescription(offer);
+                    await this.b.setRemoteDescription(offer);
+                    const answer = await this.b.createAnswer();
+                    await this.b.setLocalDescription(answer);
+                    await this.a.setRemoteDescription(answer);
+                },
+                beforeEach: function(){
+                    this.a = new RTCPeerConnection({iceServers: []});
+                    this.b = new RTCPeerConnection({iceServers: []});
+                },
+                afterEach: function () {
+                    this.a.close();
+                    this.b.close();
+                    this.a = this.b = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createOffer without media',
+                fn: async function(){
+                    await this.pc.createOffer();
+                },
+                beforeEach: function(){
+                    this.pc = new RTCPeerConnection({ iceServers: [] })
+                },
+                afterEach: function(){
+                    this.pc.close();
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createOffer with trackless transceivers',
+                fn: async function () {
+                    await this.pc.createOffer();
+                },
+                beforeEach: function(){
+                    this.pc = new RTCPeerConnection({ iceServers: [] });
+                    this.pc.addTransceiver("audio");
+                    this.pc.addTransceiver("video");
+                },
+                afterEach: function () {
+                    this.pc.close();
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createOffer with 10 audio and video transceivers',
+                fn: async function () {
+                    await this.pc.createOffer();
+                },
+                beforeEach: function () {
+                    this.pc = new RTCPeerConnection({iceServers: []});
+                    for(let i = 0; i < 10; i++){
+                        this.pc.addTransceiver("audio");
+                        this.pc.addTransceiver("video");
+                    }
+                },
+                afterEach: function () {
+                    this.pc.close();
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createOffer with 30 audio and video transceivers',
+                fn: async function () {
+                    await this.pc.createOffer();
+                },
+                beforeEach: function () {
+                    this.pc = new RTCPeerConnection({iceServers: []});
+                    for(let i = 0; i < 30; i++){
+                        this.pc.addTransceiver("audio");
+                        this.pc.addTransceiver("video");
+                    }
+                },
+                afterEach: function () {
+                    this.pc.close();
+                    this.pc = null;
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'createOffer with actual media',
+                fn: async function () {
+                    await this.pc.createOffer();
+                },
+                beforeAll: async function(){
+                    this.stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                },
+                beforeEach: function(){
+                    this.pc = new RTCPeerConnection({ iceServers: [] });
+                    this.pc.addTransceiver(this.stream.getVideoTracks()[0]);
+                    this.pc.addTransceiver(this.stream.getAudioTracks()[0]);
+                },
+                afterEach: function () {
+                    this.pc.close();
+                    this.pc = null;
+                },
+                afterAll: function(){
+                    this.stream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    });
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: 'setLocalDescription with explicit offer',
+                fn: async function(){
+                    await this.pc.setLocalDescription(this.offer);
+                },
+                beforeAll: async function(){
+                    this.stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                },
+                beforeEach: async function(){
+                    this.pc = new RTCPeerConnection({ iceServers: []});
+                    this.stream.getTracks().forEach(track => this.pc.addTransceiver(track));
+                    this.offer = await this.pc.createOffer();
+                },
+                afterEach: async function(){
+                    this.pc.close();
+                    this.pc = null;
+                    this.offer = null;
+                },
+                afterAll: function(){
+                    this.stream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    })
+                },
+            })).output("html");
+
+            (await benchmark({
+                name: 'setLocalDescription with implicit offer',
+                fn: async function(){
+                    await this.pc.setLocalDescription();
+                },
+                beforeAll: async function(){
+                    this.stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                },
+                beforeEach: async function () {
+                    this.pc = new RTCPeerConnection({ iceServers: [] });
+                    this.pc.addTransceiver("audio");
+                    this.pc.addTransceiver("video");
+                },
+                afterEach: function(){
+                    this.pc.close();
+                    this.pc = null;
+                },
+                afterAll: function(){
+                    this.stream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    })
+                },
+                onError: function(err){
+                    if(err.message && err.message.indexOf("argument") >= 0) console.warn('browser probably does not support this', err);
+                    else console.error(err);
+                }
+            })).output("html");
+
+            (await benchmark({
+                name: "setLocalDescription of type rollback",
+                fn: async function () {
+                    await this.pc.setLocalDescription({type: "rollback"})
+                },
+                beforeEach: async function(){
+                    this.pc = new RTCPeerConnection({ iceServers: [] });
+                    const offer = await this.pc.createOffer();
+                    await this.pc.setLocalDescription(offer);
+                },
+                afterEach: function(){
+                    this.pc.close();
+                    this.pc = null;
+                },
+                onError: function(err){
+                    if(err.message && err.message.indexOf('rollback') >= 0) console.warn('browser does not support this', err);
+                    else console.error(err);
+                }
+            })).output("html");
+
+        })();
+    </script>
+</head>
+<body>
+<noscript>JS disabled</noscript>
+<h1>offer related benchmark suite</h1>
+</body>
+</html>
